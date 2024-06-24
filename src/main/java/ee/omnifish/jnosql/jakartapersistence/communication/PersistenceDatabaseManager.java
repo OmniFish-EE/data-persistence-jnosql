@@ -16,9 +16,14 @@
 package ee.omnifish.jnosql.jakartapersistence.communication;
 
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.Query;
+import jakarta.persistence.TypedQuery;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.metamodel.EntityType;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 import org.eclipse.jnosql.communication.Value;
 import org.eclipse.jnosql.communication.semistructured.CommunicationEntity;
@@ -33,10 +38,13 @@ import org.eclipse.jnosql.communication.semistructured.SelectQuery;
  */
 public class PersistenceDatabaseManager implements DatabaseManager {
 
-    private EntityManager em;
+    private final EntityManager em;
+
+    private final Map<String, EntityType<?>> entityTypesByName = new HashMap<>();
 
     public PersistenceDatabaseManager(EntityManager em) {
         this.em = em;
+        cacheEntityTypes();
     }
 
     @Override
@@ -81,10 +89,13 @@ public class PersistenceDatabaseManager implements DatabaseManager {
 
     @Override
     public Stream<CommunicationEntity> select(SelectQuery sq) {
-        sq.condition().ifPresent(c -> c.condition());
         final String entityName = sq.name();
-//        final EntityType<?> entityType = em.getMetamodel().entity(entityName);
-        final Query query = em.createQuery("select e from " + entityName + " e");
+        final EntityType<?> entityType = findEntityType(entityName);
+        final CriteriaQuery<Object> criteriaQuery = em.getCriteriaBuilder().createQuery();
+        final Root<?> from = criteriaQuery.from(entityType.getJavaType());
+        criteriaQuery.select(from);
+
+        final TypedQuery<Object> query = em.createQuery(criteriaQuery);
         return query.getResultStream()
                 .map(persistenceEntity -> CommunicationEntity.of(entityName, List.of(
                         Element.of("1", Value.of(persistenceEntity))
@@ -99,6 +110,28 @@ public class PersistenceDatabaseManager implements DatabaseManager {
     @Override
     public void close() {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+    private EntityType<?> findEntityType(String entityName) {
+        try {
+            return em.getMetamodel().entity(entityName);
+        } catch (IllegalArgumentException e) {
+            // EclipseLink expects full class name in MM.entity() method. We need to find out the type otherwise
+            EntityType<?> entityType = entityTypesByName.get(entityName);
+            if (entityType != null) {
+                return entityType;
+            } else {
+                final IllegalArgumentException ex = new IllegalArgumentException("Entity with name " + entityName + " not found in the list of known entities");
+                ex.addSuppressed(e);
+                throw ex;
+            }
+        }
+    }
+
+    private void cacheEntityTypes() {
+        em.getMetamodel().getEntities().forEach(type -> {
+            entityTypesByName.put(type.getName(), type);
+        });
     }
 
 }
