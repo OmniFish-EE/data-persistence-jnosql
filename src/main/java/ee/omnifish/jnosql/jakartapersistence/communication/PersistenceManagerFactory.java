@@ -33,12 +33,12 @@ public class PersistenceManagerFactory implements DatabaseManagerFactory {
 
     @Override
     public void close() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        emf.close();
     }
 
     @Override
     public DatabaseManager apply(String t) {
-        return new PersistenceDatabaseManager(emf.createEntityManager());
+        return new PersistenceDatabaseManager(emf.createEntityManager(), emf.getName());
     }
 
 }

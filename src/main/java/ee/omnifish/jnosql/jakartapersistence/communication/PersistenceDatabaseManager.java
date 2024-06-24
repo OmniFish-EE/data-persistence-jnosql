@@ -39,17 +39,19 @@ import org.eclipse.jnosql.communication.semistructured.SelectQuery;
 public class PersistenceDatabaseManager implements DatabaseManager {
 
     private final EntityManager em;
+    private String persistenceUnitName;
 
     private final Map<String, EntityType<?>> entityTypesByName = new HashMap<>();
 
-    public PersistenceDatabaseManager(EntityManager em) {
+    public PersistenceDatabaseManager(EntityManager em, String persistenceUnitName) {
         this.em = em;
+        this.persistenceUnitName = persistenceUnitName;
         cacheEntityTypes();
     }
 
     @Override
     public String name() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        return persistenceUnitName;
     }
 
     @Override
@@ -109,7 +111,7 @@ public class PersistenceDatabaseManager implements DatabaseManager {
 
     @Override
     public void close() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        em.close();
     }
 
     private EntityType<?> findEntityType(String entityName) {
