@@ -20,7 +20,6 @@ import jakarta.persistence.Persistence;
 import org.eclipse.jnosql.communication.Settings;
 import org.eclipse.jnosql.communication.semistructured.DatabaseConfiguration;
 import org.eclipse.jnosql.communication.semistructured.DatabaseManagerFactory;
-import org.eclipse.microprofile.config.ConfigProvider;
 
 /**
  *
@@ -29,8 +28,8 @@ import org.eclipse.microprofile.config.ConfigProvider;
 public class PersistenceDbConfiguration implements DatabaseConfiguration {
 
     @Override
-    public DatabaseManagerFactory apply(Settings t) {
-        final String persistenceUnitName = ConfigProvider.getConfig().getValue("jnosql.column.database", String.class);
+    public DatabaseManagerFactory apply(Settings settings) {
+        final String persistenceUnitName = settings.get("jnosql.column.database", String.class).get();
         return new PersistenceManagerFactory(Persistence.createEntityManagerFactory(persistenceUnitName));
     }
 
