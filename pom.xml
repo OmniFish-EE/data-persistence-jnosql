@@ -34,7 +34,7 @@
     <dependencies>
         <dependency>
             <groupId>org.eclipse.jnosql.mapping</groupId>
-            <artifactId>jnosql-mapping-column</artifactId>
+            <artifactId>jnosql-mapping-document</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jnosql.databases</groupId>

@@ -18,18 +18,17 @@ package ee.omnifish.jnosql.jakartapersistence.communication;
 
 import jakarta.persistence.Persistence;
 import org.eclipse.jnosql.communication.Settings;
-import org.eclipse.jnosql.communication.semistructured.DatabaseConfiguration;
-import org.eclipse.jnosql.communication.semistructured.DatabaseManagerFactory;
 
 /**
  *
  * @author Ondro Mihalyi
  */
-public class PersistenceDbConfiguration implements DatabaseConfiguration {
+public class PersistenceDbConfiguration {
 
-    @Override
-    public DatabaseManagerFactory apply(Settings settings) {
-        final String persistenceUnitName = settings.get("jnosql.column.database", String.class).get();
+    public static final String CONFIG_PERSISTENCE_UNIT = "jnosql.persistence.unit";
+
+    public PersistenceManagerFactory apply(Settings settings) {
+        final String persistenceUnitName = settings.get(CONFIG_PERSISTENCE_UNIT, String.class).get();
         return new PersistenceManagerFactory(Persistence.createEntityManagerFactory(persistenceUnitName));
     }
 

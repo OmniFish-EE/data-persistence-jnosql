@@ -16,14 +16,12 @@
 package ee.omnifish.jnosql.jakartapersistence.communication;
 
 import jakarta.persistence.EntityManagerFactory;
-import org.eclipse.jnosql.communication.semistructured.DatabaseManager;
-import org.eclipse.jnosql.communication.semistructured.DatabaseManagerFactory;
 
 /**
  *
  * @author Ondro Mihalyi
  */
-public class PersistenceManagerFactory implements DatabaseManagerFactory {
+public class PersistenceManagerFactory {
 
     private EntityManagerFactory emf;
 
@@ -31,13 +29,11 @@ public class PersistenceManagerFactory implements DatabaseManagerFactory {
         this.emf = emf;
     }
 
-    @Override
     public void close() {
         emf.close();
     }
 
-    @Override
-    public DatabaseManager apply(String t) {
+    public PersistenceDatabaseManager apply(String t) {
         return new PersistenceDatabaseManager(emf.createEntityManager(), emf.getName());
     }
 

@@ -20,15 +20,12 @@ import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.metamodel.EntityType;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.eclipse.jnosql.communication.Value;
 import org.eclipse.jnosql.communication.semistructured.CommunicationEntity;
-import org.eclipse.jnosql.communication.semistructured.DatabaseManager;
-import org.eclipse.jnosql.communication.semistructured.DeleteQuery;
 import org.eclipse.jnosql.communication.semistructured.Element;
 import org.eclipse.jnosql.communication.semistructured.SelectQuery;
 
@@ -36,9 +33,10 @@ import org.eclipse.jnosql.communication.semistructured.SelectQuery;
  *
  * @author Ondro Mihalyi
  */
-public class PersistenceDatabaseManager implements DatabaseManager {
+public class PersistenceDatabaseManager {
 
     private final EntityManager em;
+
     private String persistenceUnitName;
 
     private final Map<String, EntityType<?>> entityTypesByName = new HashMap<>();
@@ -49,47 +47,14 @@ public class PersistenceDatabaseManager implements DatabaseManager {
         cacheEntityTypes();
     }
 
-    @Override
-    public String name() {
+    public String persistenceUnitName() {
         return persistenceUnitName;
     }
 
-    @Override
-    public CommunicationEntity insert(CommunicationEntity ce) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    public EntityManager getEntityManager() {
+        return em;
     }
-
-    @Override
-    public CommunicationEntity insert(CommunicationEntity ce, Duration drtn) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    @Override
-    public Iterable<CommunicationEntity> insert(Iterable<CommunicationEntity> itrbl) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    @Override
-    public Iterable<CommunicationEntity> insert(Iterable<CommunicationEntity> itrbl, Duration drtn) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    @Override
-    public CommunicationEntity update(CommunicationEntity ce) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    @Override
-    public Iterable<CommunicationEntity> update(Iterable<CommunicationEntity> itrbl) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    @Override
-    public void delete(DeleteQuery dq) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    @Override
+    
     public Stream<CommunicationEntity> select(SelectQuery sq) {
         final String entityName = sq.name();
         final EntityType<?> entityType = findEntityType(entityName);
@@ -104,17 +69,11 @@ public class PersistenceDatabaseManager implements DatabaseManager {
                 )));
     }
 
-    @Override
-    public long count(String string) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    @Override
     public void close() {
         em.close();
     }
 
-    private EntityType<?> findEntityType(String entityName) {
+    public EntityType<?> findEntityType(String entityName) {
         try {
             return em.getMetamodel().entity(entityName);
         } catch (IllegalArgumentException e) {
