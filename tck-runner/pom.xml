@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+~ Copyright (c) 2022, 2024 Contributors to the Eclipse Foundation
+~
+~ This program and the accompanying materials are made available under the
+~ terms of the Eclipse Public License v. 2.0, which is available at
+~ http://www.eclipse.org/legal/epl-2.0.
+~
+~ This Source Code may also be made available under the following Secondary
+~ Licenses when the conditions for such availability set forth in the
+~ Eclipse Public License v. 2.0 are satisfied: GNU General Public License,
+~ version 2 with the GNU Classpath Exception, which is available at
+~ https://www.gnu.org/software/classpath/license.html.
+~
+~ SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>ee.omnifish</groupId>
+    <artifactId>data-tck-runner</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <name>Jakarta Data TCK Runner for JNoSQL Persistence</name>
+
+    <properties>
+        <!-- General properties -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <maven.compiler.release>17</maven.compiler.release>
+        <maven.compiler.testRelease>17</maven.compiler.testRelease>
+
+        <!-- Dependency and Plugin Versions -->
+
+        <!-- Default - use local snapshot - can be overwritten by runner -->
+        <jakarta.data.version>1.0.1</jakarta.data.version>
+
+        <junit.version>5.10.2</junit.version>
+        <sigtest.version>2.3</sigtest.version>
+
+        <maven.dep.plugin.version>3.3.0</maven.dep.plugin.version>
+        <maven.comp.plugin.version>3.13.0</maven.comp.plugin.version>
+        <maven.surefire.plugin.version>3.3.0</maven.surefire.plugin.version>
+        <jnosql.persistence.version>1.1.2-SNAPSHOT</jnosql.persistence.version>
+
+        <!-- Pointer to logging.properties file that has the java.util.logging
+        configuration -->
+        <logging.config>${project.basedir}/logging.properties</logging.config>
+
+        <!-- Output directory -->
+        <targetDirectory>${project.basedir}/target</targetDirectory>
+    </properties>
+
+    <repositories>
+        <!-- TODO add private repo if your implementation is not public -->
+        <!-- TODO add staging repo if you want to use SNAPSHOT versions of the
+        API and TCK -->
+    </repositories>
+
+    <!-- tag::runtimeDep[] -->
+    <!-- The Junit5 test frameworks -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>${junit.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <!-- Runtime Dependencies -->
+    <dependencies>
+        <!-- The TCK -->
+        <dependency>
+            <groupId>jakarta.data</groupId>
+            <artifactId>jakarta.data-tck</artifactId>
+            <version>${jakarta.data.version}</version>
+        </dependency>
+        <!-- The API -->
+        <dependency>
+            <groupId>jakarta.data</groupId>
+            <artifactId>jakarta.data-api</artifactId>
+            <version>${jakarta.data.version}</version>
+        </dependency>
+        <!-- TODO add your implementation of the Jakarta Data API -->
+        <!-- Junit5 -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+        </dependency>
+        <!-- Signature Test Plugin -->
+        <dependency>
+            <groupId>jakarta.tck</groupId>
+            <artifactId>sigtest-maven-plugin</artifactId>
+            <version>${sigtest.version}</version>
+        </dependency>
+        <!-- APIs referenced by TCK that do not require implementations for standalone
+        tests -->
+        <dependency>
+            <groupId>org.jboss.shrinkwrap</groupId>
+            <artifactId>shrinkwrap-api</artifactId>
+            <version>1.2.6</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.arquillian.junit5</groupId>
+            <artifactId>arquillian-junit5-core</artifactId>
+            <version>1.7.0.Alpha13</version>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <version>6.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.enterprise</groupId>
+            <artifactId>jakarta.enterprise.cdi-api</artifactId>
+            <version>4.0.1</version>
+        </dependency>
+
+        <!-- Implementation -->
+        <dependency>
+            <groupId>io.smallrye.config</groupId>
+            <artifactId>smallrye-config</artifactId>
+            <version>3.8.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.weld.se</groupId>
+            <artifactId>weld-se-core</artifactId>
+            <version>6.0.0.Beta1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.persistence</groupId>
+            <artifactId>eclipselink</artifactId>
+            <version>5.0.0-B02</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.derby</groupId>
+            <artifactId>derby</artifactId>
+            <version>10.17.1.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.derby</groupId>
+            <artifactId>derbytools</artifactId>
+            <version>10.17.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.derby</groupId>
+            <artifactId>derbyclient</artifactId>
+            <version>10.17.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>ee.omnifish</groupId>
+            <artifactId>jnosql-jakarta-persistence</artifactId>
+            <version>${jnosql.persistence.version}</version>
+        </dependency>
+    </dependencies>
+    <!-- end::runtimeDep[] -->
+
+    <build>
+        <directory>${targetDirectory}</directory>
+        <defaultGoal>clean test</defaultGoal>
+        <plugins>
+            <!-- Compile plugin for any supplemental class files -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven.comp.plugin.version}</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                </configuration>
+            </plugin>
+            <!-- tag::configJunit5[] -->
+            <!-- Surefire plugin - Entrypoint for Junit5 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven.surefire.plugin.version}</version>
+                <configuration>
+                    <dependenciesToScan>
+                        <dependency>jakarta.data:jakarta.data-tck</dependency>
+                    </dependenciesToScan>
+                    <!-- tag::systemProperties[] -->
+                    <systemPropertyVariables>
+                        <!-- tag::signature[] -->
+                        <jimage.dir>${targetDirectory}/jimage</jimage.dir>
+                        <signature.sigTestClasspath>[path-to]/jakarta.data-api.jar:[path-to-jimage]/java.base:[path-to-jimage]/java.rmi:[path-to-jimage]/java.sql:[path-to-jimage]/java.naming</signature.sigTestClasspath>
+                        <!-- end::signature[] -->
+                        <!-- tag::logging[] -->
+                        <java.util.logging.config.file>${logging.config}</java.util.logging.config.file>
+                        <!-- end::logging[] -->
+                        <!-- tag::profile[] -->
+                        <!-- Required, Arquillian will deploy artifacts by default -->
+                        <jakarta.tck.skip.deployment>true</jakarta.tck.skip.deployment>
+                        <!-- end::profile[] -->
+                        <junit.jupiter.extensions.autodetection.enabled>true</junit.jupiter.extensions.autodetection.enabled>
+                    </systemPropertyVariables>
+                    <!-- end::systemProperties[] -->
+                    <!-- Supported tags
+                    Entities:[nosql|persistence]
+                    Other:   [signature] -->
+                    <groups>standalone</groups>
+                    <!-- If running back-to-back tests at different levels
+                    use this to distinguish the results -->
+                    <reportNameSuffix>[OPTIONAL]</reportNameSuffix>
+                    <!-- Ensure surfire plugin looks under src/main/java
+                    instead of src/test/java -->
+                    <testSourceDirectory>${basedir}/src/main/java/</testSourceDirectory>
+                </configuration>
+            </plugin>
+            <!-- end::configJunit5[] -->
+        </plugins>
+    </build>
+</project>
