@@ -29,6 +29,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.metamodel.EntityType;
@@ -202,7 +203,7 @@ public class PersistenceDocumentTemplate implements DocumentTemplate {
                     if (element.value().isNull())
                         yield ctx.builder().isNull(ctx.root().get(element.name()));
                     else {
-                        yield ctx.builder().equal(ctx.root().get(element.name()), "Jakarta");
+                        yield ctx.builder().equal(ctx.root().get(element.name()), element.value().get());
                     }
                 }
                 case AND -> {
@@ -210,9 +211,13 @@ public class PersistenceDocumentTemplate implements DocumentTemplate {
                     yield ctx.builder().and(parseCriteria(iterator.next(), ctx), parseCriteria(iterator.next(), ctx));
                 }
                 case LESSER_EQUALS_THAN -> {
-//                    Iterator<?> iterator = elementIterator(criteria);
-                    yield ctx.builder().lessThanOrEqualTo(ctx.root().get("age"), 50);
+                    Element element = (Element) criteria.element();
+                    final Path<Comparable> field = ctx.root().get(element.name());
+                    final Comparable fieldValue = element.value().get(Comparable.class);
+                    yield ctx.builder().lessThanOrEqualTo(field, fieldValue);
                 }
+
+
                 default ->
                     throw new UnsupportedOperationException("Not supported yet.");
             };
