@@ -73,14 +73,14 @@ public class PersistenceDatabaseManager {
     public void close() {
     }
 
-    public EntityType<?> findEntityType(String entityName) {
+    public <T> EntityType<T> findEntityType(String entityName) {
         try {
-            return em.getMetamodel().entity(entityName);
+            return (EntityType<T>) em.getMetamodel().entity(entityName);
         } catch (IllegalArgumentException e) {
             // EclipseLink expects full class name in MM.entity() method. We need to find out the type otherwise
             EntityType<?> entityType = entityTypesByName.get(entityName);
             if (entityType != null) {
-                return entityType;
+                return (EntityType<T>)entityType;
             } else {
                 final IllegalArgumentException ex = new IllegalArgumentException("Entity with name " + entityName + " not found in the list of known entities");
                 ex.addSuppressed(e);

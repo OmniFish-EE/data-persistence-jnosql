@@ -29,13 +29,18 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.metamodel.EntityType;
 import java.time.Duration;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
+import org.eclipse.jnosql.communication.semistructured.CriteriaCondition;
 import org.eclipse.jnosql.communication.semistructured.DeleteQuery;
+import org.eclipse.jnosql.communication.semistructured.Element;
 import org.eclipse.jnosql.communication.semistructured.SelectQuery;
 import org.eclipse.jnosql.mapping.Database;
 import org.eclipse.jnosql.mapping.DatabaseType;
@@ -78,11 +83,13 @@ public class PersistenceDocumentTemplate implements DocumentTemplate {
 
     @Override
     public <T> Stream<T> findAll(Class<T> type) {
-        TypedQuery<T> query = buildQuery(type, type, ctx -> ctx.query.select((Root<T>)ctx.root));
+        TypedQuery<T> query = buildQuery(type, type, ctx -> ctx.query.select((Root<T>) ctx.root));
         return query.getResultStream();
     }
 
-    record QuaryContext<FROM, RESULT>(CriteriaQuery<RESULT> query, Root<FROM> root, CriteriaBuilder builder) {}
+    record QuaryContext<FROM, RESULT>(CriteriaQuery<RESULT> query, Root<FROM> root, CriteriaBuilder builder) {
+
+    }
 
     private <FROM, RESULT> TypedQuery<RESULT> buildQuery(Class<FROM> fromType, Class<RESULT> resultType,
             Function<QuaryContext<FROM, RESULT>, CriteriaQuery<RESULT>> queryModifier) {
@@ -152,17 +159,74 @@ public class PersistenceDocumentTemplate implements DocumentTemplate {
     }
 
     @Override
-    public <T> Stream<T> select(SelectQuery query) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    public <T> Stream<T> select(SelectQuery selectQuery) {
+        final String entityName = selectQuery.name();
+        final EntityType<T> entityType = manager.findEntityType(entityName);
+        if (selectQuery.condition().isEmpty()) {
+            return findAll(entityType.getJavaType());
+        } else {
+            final CriteriaCondition criteria = selectQuery.condition().get();
+            TypedQuery<T> query = buildQuery(entityType.getJavaType(), entityType.getJavaType(), ctx -> {
+                CriteriaQuery<T> q = ctx.query.select(ctx.root);
+                q = q.where(parseCriteria(criteria, ctx));
+                return q;
+            });
+            return query.getResultStream();
+        }
     }
 
     @Override
-    public long count(SelectQuery query) {
-        if (query.condition().isEmpty()) {
-            return count(query.name());
+    public long count(SelectQuery selectQuery) {
+        final String entityName = selectQuery.name();
+        if (selectQuery.condition().isEmpty()) {
+            return count(entityName);
         } else {
-            throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+            final EntityType<?> entityType = manager.findEntityType(entityName);
+            final CriteriaCondition criteria = selectQuery.condition().get();
+            TypedQuery<Long> query = buildQuery(entityType.getJavaType(), Long.class, ctx -> {
+                CriteriaQuery<Long> q = ctx.query.select(ctx.builder.count(ctx.root));
+                q = q.where(parseCriteria(criteria, ctx));
+                return q;
+            });
+            return query.getSingleResult();
         }
+    }
+
+    private <FROM, RESULT> Predicate parseCriteria(Object value, QuaryContext<FROM, RESULT> ctx) {
+        if (value instanceof CriteriaCondition criteria) {
+            return switch (criteria.condition()) {
+                case NOT ->
+                    ctx.builder().not(parseCriteria(criteria.element(), ctx));
+                case EQUALS -> {
+                    Element element = (Element) criteria.element();
+                    if (element.value().isNull())
+                        yield ctx.builder().isNull(ctx.root().get(element.name()));
+                    else {
+                        yield ctx.builder().equal(ctx.root().get(element.name()), "Jakarta");
+                    }
+                }
+                case AND -> {
+                    Iterator<?> iterator = elementIterator(criteria);
+                    yield ctx.builder().and(parseCriteria(iterator.next(), ctx), parseCriteria(iterator.next(), ctx));
+                }
+                case LESSER_EQUALS_THAN -> {
+//                    Iterator<?> iterator = elementIterator(criteria);
+                    yield ctx.builder().lessThanOrEqualTo(ctx.root().get("age"), 50);
+                }
+                default ->
+                    throw new UnsupportedOperationException("Not supported yet.");
+            };
+        } else if (value instanceof Element element) {
+            return parseCriteria(element.value().get(), ctx);
+        }
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    private Iterator<?> elementIterator(CriteriaCondition criteria) {
+        Element element = (Element) criteria.element();
+        Collection<?> elements = (Collection<?>) element.value().get();
+        final Iterator<?> iterator = elements.iterator();
+        return iterator;
     }
 
     @Override

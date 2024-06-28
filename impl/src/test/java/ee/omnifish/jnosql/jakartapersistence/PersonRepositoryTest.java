@@ -19,6 +19,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.not;
 
 import jakarta.enterprise.inject.se.SeContainer;
 import jakarta.enterprise.inject.se.SeContainerInitializer;
@@ -35,12 +36,15 @@ import org.junit.jupiter.api.Test;
 public class PersonRepositoryTest {
 
     private SeContainer cdiContainer;
+    private PersonRepository personRepo;
 
     @BeforeEach
-    public void init() {
+    void init() {
         cdiContainer = SeContainerInitializer.newInstance()
                 .addBeanClasses(EntityManagerProducer.class)
                 .initialize();
+        assertThat("repository can be resolved", cdiContainer.select(PersonRepository.class).isResolvable());
+        personRepo = cdiContainer.select(PersonRepository.class).get();
         getEntityManager().getTransaction().begin();
     }
 
@@ -49,25 +53,44 @@ public class PersonRepositoryTest {
     }
 
     @AfterEach
-    public void cleanup() {
+    void cleanup() {
         getEntityManager().getTransaction().commit();
         cdiContainer.close();
     }
 
     @Test
-    public void findAll() {
-        assertThat("repository can be resolved", cdiContainer.select(PersonRepository.class).isResolvable());
-        final PersonRepository personRepo = cdiContainer.select(PersonRepository.class).get();
+    void findAll() {
         final List<Person> persons = personRepo.findAll().toList();
         assertThat("queryResult", persons, is(empty()));
         System.out.println("All persons: " + persons);
     }
 
     @Test
-    public void count() {
-        final PersonRepository personRepo = cdiContainer.select(PersonRepository.class).get();
+    void count() {
         personRepo.insert(new Person());
         final long count = personRepo.countAll();
         assertThat(count, greaterThan(0L));
     }
+
+    @Test
+    void countByNotNull() {
+        final Person person = new Person();
+        person.setName("Jakarta");
+        personRepo.insert(person);
+        final long count = personRepo.countByNameNotNull();
+        assertThat(count, greaterThan(0L));
+    }
+
+    @Test
+    void findByXAndYLessThanEqual() {
+        final Person person = new Person();
+        final String NAME = "Jakarta";
+        person.setName(NAME);
+        person.setAge(35);
+        personRepo.insert(person);
+
+        final List<Person> persons = personRepo.findByNameAndAgeLessThanEqual(NAME, 50);
+        assertThat(persons, is(not(empty())));
+    }
+
 }
