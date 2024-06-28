@@ -15,6 +15,9 @@
  */
 package ee.omnifish.jnosql.jakartapersistence.mapping;
 
+import static org.eclipse.jnosql.communication.Condition.LESSER_EQUALS_THAN;
+import static org.eclipse.jnosql.communication.Condition.LESSER_THAN;
+
 import ee.omnifish.jnosql.jakartapersistence.communication.PersistenceDatabaseManager;
 import jakarta.annotation.Priority;
 import jakarta.data.page.CursoredPage;
@@ -39,6 +42,7 @@ import java.util.Iterator;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
+import org.eclipse.jnosql.communication.Value;
 import org.eclipse.jnosql.communication.semistructured.CriteriaCondition;
 import org.eclipse.jnosql.communication.semistructured.DeleteQuery;
 import org.eclipse.jnosql.communication.semistructured.Element;
@@ -193,6 +197,35 @@ public class PersistenceDocumentTemplate implements DocumentTemplate {
         }
     }
 
+    record ComparableContext(Path<Comparable> field, Comparable fieldValue) {
+
+        public static <FROM> ComparableContext from(Root<FROM> root, CriteriaCondition criteria) {
+            Element element = (Element) criteria.element();
+            final Path<Comparable> field = root.get(getName(element));
+            final Comparable fieldValue = element.value().get(Comparable.class);
+            return new ComparableContext(field, fieldValue);
+        }
+    }
+
+    record BiComparableContext(Path<Comparable> field, Comparable fieldValue1, Comparable fieldValue2) {
+
+        public static <FROM> BiComparableContext from(Root<FROM> root, CriteriaCondition criteria) {
+            Element element = (Element) criteria.element();
+            final Path<Comparable> field = root.get(getName(element));
+            Iterator<?> iterator = elementIterator(criteria);
+            final Comparable fieldValue1 = ((Value) iterator.next()).get(Comparable.class);
+            final Comparable fieldValue2 = ((Value) iterator.next()).get(Comparable.class);
+            return new BiComparableContext(field, fieldValue1, fieldValue2);
+        }
+
+    }
+
+    private static String getName(Element element) {
+        final String name = element.name();
+        // NoSQL DBs translate id field into "_id" but we don't want it
+        return name.equals("_id") ? "id" : name;
+    }
+
     private <FROM, RESULT> Predicate parseCriteria(Object value, QuaryContext<FROM, RESULT> ctx) {
         if (value instanceof CriteriaCondition criteria) {
             return switch (criteria.condition()) {
@@ -200,23 +233,36 @@ public class PersistenceDocumentTemplate implements DocumentTemplate {
                     ctx.builder().not(parseCriteria(criteria.element(), ctx));
                 case EQUALS -> {
                     Element element = (Element) criteria.element();
-                    if (element.value().isNull())
-                        yield ctx.builder().isNull(ctx.root().get(element.name()));
-                    else {
-                        yield ctx.builder().equal(ctx.root().get(element.name()), element.value().get());
+                    if (element.value().isNull()) {
+                        yield ctx.builder().isNull(ctx.root().get(getName(element)));
+                    } else {
+                        yield ctx.builder().equal(ctx.root().get(getName(element)), element.value().get());
                     }
                 }
                 case AND -> {
                     Iterator<?> iterator = elementIterator(criteria);
                     yield ctx.builder().and(parseCriteria(iterator.next(), ctx), parseCriteria(iterator.next(), ctx));
                 }
-                case LESSER_EQUALS_THAN -> {
-                    Element element = (Element) criteria.element();
-                    final Path<Comparable> field = ctx.root().get(element.name());
-                    final Comparable fieldValue = element.value().get(Comparable.class);
-                    yield ctx.builder().lessThanOrEqualTo(field, fieldValue);
+                case LESSER_THAN -> {
+                    final ComparableContext comparableContext = ComparableContext.from(ctx.root(), criteria);
+                    yield ctx.builder().lessThan(comparableContext.field(), comparableContext.fieldValue());
                 }
-
+                case LESSER_EQUALS_THAN -> {
+                    final ComparableContext comparableContext = ComparableContext.from(ctx.root(), criteria);
+                    yield ctx.builder().lessThanOrEqualTo(comparableContext.field(), comparableContext.fieldValue());
+                }
+                case GREATER_THAN -> {
+                    final ComparableContext comparableContext = ComparableContext.from(ctx.root(), criteria);
+                    yield ctx.builder().greaterThan(comparableContext.field(), comparableContext.fieldValue());
+                }
+                case GREATER_EQUALS_THAN -> {
+                    final ComparableContext comparableContext = ComparableContext.from(ctx.root(), criteria);
+                    yield ctx.builder().greaterThanOrEqualTo(comparableContext.field(), comparableContext.fieldValue());
+                }
+                case BETWEEN -> {
+                    final BiComparableContext comparableContext = BiComparableContext.from(ctx.root(), criteria);
+                    yield ctx.builder().between(comparableContext.field(), comparableContext.fieldValue1(), comparableContext.fieldValue2());
+                }
 
                 default ->
                     throw new UnsupportedOperationException("Not supported yet.");
@@ -227,7 +273,7 @@ public class PersistenceDocumentTemplate implements DocumentTemplate {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
-    private Iterator<?> elementIterator(CriteriaCondition criteria) {
+    private static Iterator<?> elementIterator(CriteriaCondition criteria) {
         Element element = (Element) criteria.element();
         Collection<?> elements = (Collection<?>) element.value().get();
         final Iterator<?> iterator = elements.iterator();
